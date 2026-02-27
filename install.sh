@@ -94,7 +94,7 @@ MIHOMO_VER="$(mihomo -v 2>/dev/null | head -n1 | grep -oE 'v[0-9]+(\.[0-9]+){1,2
 
 HEADERS=$(curl -s -D - -o /dev/null \
   -H "x-hwid: $HWID" \
-  -H "x-device-os: KeeneticOS" \
+  -H "x-device-os: Keenetic OS" \
   -H "x-ver-os: $OS_VER" \
   -H "x-device-model: $MODEL" \
   -H "User-Agent: mihomo/$MIHOMO_VER" \
