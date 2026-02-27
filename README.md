@@ -4,9 +4,9 @@
 
 ## Установка
 
-\```sh
+```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/dorian6996/Mihomo-HWID-Subscription/main/install.sh)"
-\```
+```
 
 ## Особенности
 
