@@ -111,7 +111,7 @@ rule-providers:
     interval: 86400
     url: https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/playstation.mrs
     path: ./rule-sets/playstation.mrs
-   xbox:
+  xbox:
     type: http
     behavior: domain
     format: mrs
