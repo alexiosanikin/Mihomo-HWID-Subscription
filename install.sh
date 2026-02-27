@@ -2,7 +2,7 @@
 CONFIG_PATH="/opt/etc/mihomo/config.yaml"
 PROVIDER_DIR="/opt/etc/mihomo/proxy-providers"
 UPDATE_SCRIPT="/opt/etc/mihomo/update-config.sh"
-
+UPDATE_VERSIONS_SCRIPT="/opt/etc/mihomo/update-versions.sh"
 
 GROUPS_RULES_URL="https://raw.githubusercontent.com/dorian6996/Mihomo-HWID-Subscription/main/template.yaml"
 
@@ -90,8 +90,6 @@ HWID="$(echo "$MAC_ADDR" | tr -d ':' | tr '[:lower:]' '[:upper:]')"
 MIHOMO_VER="$(mihomo -v 2>/dev/null | head -n1 | grep -oE 'v[0-9]+(\.[0-9]+){1,2}')"
 [ -z "$MIHOMO_VER" ] && MIHOMO_VER="v1.0.0"
 
-
-
 HEADERS=$(curl -s -D - -o /dev/null \
   -H "x-hwid: $HWID" \
   -H "x-device-os: Keenetic OS" \
@@ -130,7 +128,6 @@ done
 
 echo "Название подписки: $PROVIDER_NAME"
 
-
 if [ "$CONFIG_EXISTS" -eq 1 ] && [ "$MODE" = "1" ]; then
 
   awk '
@@ -148,7 +145,7 @@ if [ "$CONFIG_EXISTS" -eq 1 ] && [ "$MODE" = "1" ]; then
     print "      x-hwid:"
     print "        - \"'"$HWID"'\""
     print "      x-device-os:"
-    print "        - \"KeeneticOS\""
+    print "        - \"Keenetic OS\""
     print "      x-ver-os:"
     print "        - \"'"$OS_VER"'\""
     print "      x-device-model:"
@@ -168,7 +165,6 @@ if [ "$CONFIG_EXISTS" -eq 1 ] && [ "$MODE" = "1" ]; then
   exit 0
 fi
 
-
 if [ "$CONFIG_EXISTS" -eq 1 ] && { [ "$MODE" = "2" ] || [ "$MODE" = "MINIMAL" ]; }; then
   if [ -f "$CONFIG_PATH" ]; then
     sed -i '/proxy-providers:/,/proxy-groups:/d' "$CONFIG_PATH"
@@ -176,7 +172,6 @@ if [ "$CONFIG_EXISTS" -eq 1 ] && { [ "$MODE" = "2" ] || [ "$MODE" = "MINIMAL" ];
   echo "Подписки удалены (providers)."
   exit 0
 fi
-
 
 if [ "$MODE" = "MINIMAL" ]; then
   cat > "$CONFIG_PATH" <<EOF
@@ -204,7 +199,7 @@ proxy-providers:
       x-hwid:
         - "$HWID"
       x-device-os:
-        - "KeeneticOS"
+        - "Keenetic OS"
       x-ver-os:
         - "$OS_VER"
       x-device-model:
@@ -219,7 +214,6 @@ EOF
   xkeen -restart
   exit 0
 fi
-
 
 if [ "$MODE" = "FULL" ]; then
   cat > "$CONFIG_PATH" <<EOF
@@ -265,7 +259,7 @@ proxy-providers:
       x-hwid:
         - "$HWID"
       x-device-os:
-        - "KeeneticOS"
+        - "Keenetic OS"
       x-ver-os:
         - "$OS_VER"
       x-device-model:
@@ -276,7 +270,6 @@ proxy-providers:
       interval: 3000
 EOF
 
- 
   GROUPS_RULES_TMP="/tmp/template-$$.yaml"
   if curl -fsSL "$GROUPS_RULES_URL" -o "$GROUPS_RULES_TMP" 2>/dev/null; then
     cat "$GROUPS_RULES_TMP" >> "$CONFIG_PATH"
@@ -303,53 +296,98 @@ EOF
     echo "Готово."
     exit 0
   fi
- 
+
+  # Скрипт обновления template (proxy-groups + rules)
   cat > "$UPDATE_SCRIPT" <<'UPDATEEOF'
 #!/bin/sh
-
-
 CONFIG_PATH="/opt/etc/mihomo/config.yaml"
 GROUPS_RULES_URL="PLACEHOLDER_URL"
 TMP_FILE="/tmp/template-update.yaml"
 BACKUP="$CONFIG_PATH.bak"
 
-[ ! -f "$CONFIG_PATH" ] && echo "Конфиг не найден: $CONFIG_PATH" && exit 1
-
+[ ! -f "$CONFIG_PATH" ] && exit 1
 
 if ! curl -fsSL "$GROUPS_RULES_URL" -o "$TMP_FILE" 2>/dev/null; then
-  echo "Ошибка загрузки $GROUPS_RULES_URL"
   exit 1
 fi
 
-
 cp "$CONFIG_PATH" "$BACKUP"
-
 
 awk '/^proxy-groups:/{exit} {print}' "$CONFIG_PATH" > "$CONFIG_PATH.tmp"
 cat "$TMP_FILE" >> "$CONFIG_PATH.tmp"
 mv "$CONFIG_PATH.tmp" "$CONFIG_PATH"
 rm -f "$TMP_FILE"
 
-echo "Конфиг обновлён"
 xkeen -restart
 UPDATEEOF
 
   sed -i "s|PLACEHOLDER_URL|$GROUPS_RULES_URL|g" "$UPDATE_SCRIPT"
   chmod +x "$UPDATE_SCRIPT"
 
-  
+  cat > "$UPDATE_VERSIONS_SCRIPT" <<'VERSEOF'
+#!/bin/sh
+CONFIG_PATH="/opt/etc/mihomo/config.yaml"
+
+[ ! -f "$CONFIG_PATH" ] && exit 1
+
+NDM_INFO="$(ndmc -c 'show version' 2>/dev/null)"
+OS_VER="$(echo "$NDM_INFO" | awk '/title:/ {print $2}')"
+
+MIHOMO_VER="$(mihomo -v 2>/dev/null | head -n1 | grep -oE 'v[0-9]+(\.[0-9]+){1,2}')"
+[ -z "$MIHOMO_VER" ] && MIHOMO_VER="v1.0.0"
+
+cp "$CONFIG_PATH" "$CONFIG_PATH.bak"
+
+awk -v ua="mihomo/$MIHOMO_VER" -v osver="$OS_VER" '
+{
+  line = $0
+
+  if (line ~ /^[[:space:]]+-[[:space:]]+"mihomo\/v[0-9]/) {
+    sub(/"mihomo\/v[0-9][^"]*"/, "\"" ua "\"", line)
+    print line
+    next
+  }
+
+  if (prev_key ~ /x-ver-os/ && line ~ /^[[:space:]]+-[[:space:]]+"/) {
+    sub(/"[^"]*"/, "\"" osver "\"", line)
+    print line
+    next
+  }
+
+  if (line ~ /^[[:space:]]+x-[a-z-]+[[:space:]]*:/) {
+    match(line, /x-[a-z-]+/)
+    prev_key = substr(line, RSTART, RLENGTH)
+  } else if (line !~ /^[[:space:]]+-[[:space:]]*"/) {
+    prev_key = ""
+  }
+
+  print line
+}
+' "$CONFIG_PATH" > "$CONFIG_PATH.tmp" && mv "$CONFIG_PATH.tmp" "$CONFIG_PATH"
+
+VERSEOF
+
+  chmod +x "$UPDATE_VERSIONS_SCRIPT"
+
   CRON_JOB="0 5 */3 * * $UPDATE_SCRIPT >> /opt/var/log/mihomo-update.log 2>&1"
   CRON_MARKER="# mihomo-config-update"
 
-  
   if crontab -l 2>/dev/null | grep -q "$CRON_MARKER"; then
     crontab -l 2>/dev/null | grep -v "$CRON_MARKER" | { cat; echo "$CRON_JOB $CRON_MARKER"; } | crontab -
-    echo "Установка расписания обновления."
   else
     (crontab -l 2>/dev/null; echo "$CRON_JOB $CRON_MARKER") | crontab -
-    echo "Расписание установленно: каждый 3й день в 5:00."
   fi
 
+  CRON_VER="50 4 * * 0 $UPDATE_VERSIONS_SCRIPT >> /opt/var/log/mihomo-update.log 2>&1"
+  CRON_VER_MARKER="# mihomo-versions-update"
+
+  if crontab -l 2>/dev/null | grep -q "$CRON_VER_MARKER"; then
+    crontab -l 2>/dev/null | grep -v "$CRON_VER_MARKER" | { cat; echo "$CRON_VER $CRON_VER_MARKER"; } | crontab -
+  else
+    (crontab -l 2>/dev/null; echo "$CRON_VER $CRON_VER_MARKER") | crontab -
+  fi
+
+  echo "Расписание установлено: каждый 3й день в 5:00."
   echo "Полный конфиг установлен."
   xkeen -restart
   echo "Готово."
