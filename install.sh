@@ -289,6 +289,20 @@ EOF
     exit 1
   fi
 
+  echo
+  echo "Автоматически обновлять файл конфигурации каждые 3 дня?"
+  echo "1) Да — установить обновление по расписанию"
+  echo "2) Нет — пропустить"
+  printf "Выберите [1-2]: "
+  read CRON_CHOICE
+
+  if [ "$CRON_CHOICE" = "2" ]; then
+    echo "Крон не установлен."
+    echo "Полный конфиг установлен."
+    xkeen -restart
+    echo "Готово."
+    exit 0
+  fi
  
   cat > "$UPDATE_SCRIPT" <<'UPDATEEOF'
 #!/bin/sh
