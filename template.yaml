@@ -46,12 +46,12 @@ proxy-groups:
   type: select
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/PlayStation.png
   include-all: true
-  proxies: ["VPN","⚡️ Fastest",DIRECT]
+  proxies: [DIRECT, "VPN","⚡️ Fastest"]
 - name: Xbox
   type: select
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Xbox.png
   include-all: true
-  proxies: ["VPN","⚡️ Fastest",DIRECT]
+  proxies: [DIRECT, "VPN","⚡️ Fastest"]
 - name: Telegram
   type: select
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram.png
