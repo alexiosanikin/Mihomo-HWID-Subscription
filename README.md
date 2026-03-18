@@ -1,6 +1,6 @@
 # Mihomo HWID Subscription Installer
 
-Установщик подписок с требованием HWID для Mihomo для XKeen на роутерах Keenetic (KeeneticOS / Entware).
+Установщик подписок с требованием HWID для Mihomo для XKeen на роутерах Keenetic (KeeneticOS / Entware) и терминальных версиях Linux.
 
 ## Установка
 
