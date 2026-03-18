@@ -179,8 +179,8 @@ rule-providers:
     behavior: domain
     format: mrs
     interval: 86400
-    url: https://github.com/legiz-ru/mihomo-rule-sets/raw/refs/heads/main/ru-bundle/no-russia-hosts.mrs
-    path: ./rule-sets/other.mrs
+    url: https://github.com/SaltyMonkey/mrs-parsed-data/raw/refs/heads/main/block/itdog-geoblock.mrs
+    path: ./rule-sets/rugeoblock.mrs
   discord:
     type: http
     behavior: domain
@@ -307,9 +307,6 @@ rules:
   - RULE-SET,discord,Discord
   - RULE-SET,discord_vc,Discord
   - PROCESS-NAME-REGEX,(?i).*discord.*,Discord
-  - DOMAIN-SUFFIX,play.google.com,Остальное
-  - DOMAIN-SUFFIX,googleapis.com,Остальное
-  - DOMAIN-SUFFIX,google.com,Остальное
   - RULE-SET,ru_blocked,Заблокировано в РФ
   - RULE-SET,politic,Заблокировано в РФ
   - DOMAIN-SUFFIX,cdn-service.space,Заблокировано в РФ
