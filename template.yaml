@@ -6,6 +6,7 @@ proxy-groups:
   proxies: ["⚡️ Fastest"]
 - name: ⚡️ Fastest
   type: url-test
+  hidden: true
   exclude-filter: "🇷🇺"
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png
   include-all: true
@@ -243,12 +244,19 @@ rule-providers:
     interval: 86400
     url: https://github.com/PentiumB/CDN-RuleSet/raw/refs/heads/main/release/amazon.mrs
     path: ./rule-sets/amazon.mrs
-  akamai:
+  akamaiip:
     type: http
     behavior: ipcidr
     format: mrs
     interval: 86400
     url: https://github.com/PentiumB/CDN-RuleSet/raw/refs/heads/main/release/akamai.mrs
+    path: ./rule-sets/akamaiip.mrs
+  akamai:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    interval: 86400
+    url: https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/akamai.mrs
     path: ./rule-sets/akamai.mrs
   cloudflare:
     type: http
@@ -330,7 +338,8 @@ rules:
   - DOMAIN-SUFFIX,happ-proxy.com,Недоступно из РФ
   - RULE-SET,oracle,Недоступно из РФ,no-resolve
   - RULE-SET,amazon,Amazon,no-resolve
-  - RULE-SET,akamai,Amazon,no-resolve
+  - RULE-SET,akamai,Amazon
+  - RULE-SET,akamaiip,Amazon,no-resolve
   - RULE-SET,cloudflare,Cloudflare,no-resolve
   - RULE-SET,geosite-ru,DIRECT
   - RULE-SET,geoip-ru,DIRECT,no-resolve
