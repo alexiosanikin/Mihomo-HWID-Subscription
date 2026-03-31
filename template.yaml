@@ -208,6 +208,13 @@ rule-providers:
     interval: 86400
     url: https://github.com/PentiumB/CDN-RuleSet/raw/refs/heads/main/release/oracle.mrs
     path: ./rule-sets/oracle.mrs
+  ubisoft:
+    type: http
+    behavior: domain
+    format: mrs
+    interval: 86400
+    url: https://github.com/MetaCubeX/meta-rules-dat/raw/meta/geo/geosite/ubisoft.mrs
+    path: ./rule-sets/ubisoft.mrs
   roblox:
     type: http
     behavior: domain
@@ -309,6 +316,7 @@ rules:
   - PROCESS-NAME-REGEX,(?i).*discord.*,Discord
   - RULE-SET,ru_blocked,Заблокировано в РФ
   - RULE-SET,politic,Заблокировано в РФ
+  - RULE-SET,ubisoft,Заблокировано в РФ
   - DOMAIN-SUFFIX,cdn-service.space,Заблокировано в РФ
   - DOMAIN-SUFFIX,truenas.com,Заблокировано в РФ
   - DOMAIN-SUFFIX,truenasconnect.net,Заблокировано в РФ
