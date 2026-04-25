@@ -324,8 +324,8 @@ rules:
   - PROCESS-NAME-REGEX,(?i).*discord.*,Discord
   - RULE-SET,ru_blocked,Заблокировано в РФ
   - RULE-SET,politic,Заблокировано в РФ
-  - RULE-SET,ubisoft,Заблокировано в РФ
   - DOMAIN-SUFFIX,cdn-service.space,Заблокировано в РФ
+  - DOMAIN-SUFFIX,pushbr.com,Заблокировано в РФ
   - DOMAIN-SUFFIX,truenas.com,Заблокировано в РФ
   - DOMAIN-SUFFIX,truenasconnect.net,Заблокировано в РФ
   - DOMAIN-SUFFIX,smarttvcdn.online,Заблокировано в РФ
