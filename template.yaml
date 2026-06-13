@@ -329,6 +329,7 @@ rules:
   - DOMAIN-SUFFIX,truenas.com,Заблокировано в РФ
   - DOMAIN-SUFFIX,truenasconnect.net,Заблокировано в РФ
   - DOMAIN-SUFFIX,smarttvcdn.online,Заблокировано в РФ
+  - DOMAIN-SUFFIX,srvkp.com,Заблокировано в РФ
   - DST-PORT,30000-31000,Заблокировано в РФ
   - DOMAIN-SUFFIX,wwsga.me,Заблокировано в РФ
   - DOMAIN-SUFFIX,gran-turismo.com,Заблокировано в РФ
