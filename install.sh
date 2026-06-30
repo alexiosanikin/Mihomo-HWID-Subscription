@@ -18,15 +18,15 @@ download_file() {
 
   rm -f "$output"
 
-  if curl -fL --connect-timeout 10 -m 90 "$url" -o "$output"; then
+  if curl -fsSL --connect-timeout 10 -m 90 "$url" -o "$output"; then
     return 0
   fi
 
-  if curl -fL --connect-timeout 10 -m 90 "https://gh-proxy.com/$url" -o "$output"; then
+  if curl -fsSL --connect-timeout 10 -m 90 "https://gh-proxy.com/$url" -o "$output"; then
     return 0
   fi
 
-  if curl -fL --connect-timeout 10 -m 90 "https://ghfast.top/$url" -o "$output"; then
+  if curl -fsSL --connect-timeout 10 -m 90 "https://ghfast.top/$url" -o "$output"; then
     return 0
   fi
 
@@ -36,7 +36,7 @@ download_file() {
 }
 
 xkeen_is_installed() {
-  command -v xkeen >/dev/null 2>&1 || [ -x /opt/sbin/xkeen ]
+  { command -v xkeen >/dev/null 2>&1 || [ -x /opt/sbin/xkeen ]; } && [ -f /opt/sbin/.xkeen/import.sh ]
 }
 
 xkeen_run() {
@@ -175,6 +175,7 @@ download_mihomo_binary() {
 install_xkeen_distribution() {
   mkdir -p /opt/sbin /tmp/xkeen-mihomo
   xkeen_archive="/tmp/xkeen-mihomo/xkeen.tar.gz"
+  xkeen_extract_dir="/tmp/xkeen-mihomo/xkeen-dist"
 
   download_file "$XKEEN_TARBALL_URL" "$xkeen_archive" "XKeen" || return 1
   if ! tar -tzf "$xkeen_archive" >/dev/null 2>&1; then
@@ -183,10 +184,39 @@ install_xkeen_distribution() {
     return 1
   fi
 
-  tar -xzf "$xkeen_archive" -C /opt/sbin xkeen _xkeen || return 1
-  rm -rf /opt/sbin/.xkeen
-  mv /opt/sbin/_xkeen /opt/sbin/.xkeen
+  rm -rf "$xkeen_extract_dir"
+  mkdir -p "$xkeen_extract_dir"
+
+  if ! tar -xzf "$xkeen_archive" -C "$xkeen_extract_dir"; then
+    rm -rf "$xkeen_extract_dir"
+    rm -f "$xkeen_archive"
+    echo "Не удалось распаковать XKeen."
+    return 1
+  fi
+
+  if [ -d "$xkeen_extract_dir/_xkeen" ]; then
+    xkeen_scripts_dir="$xkeen_extract_dir/_xkeen"
+  elif [ -d "$xkeen_extract_dir/.xkeen" ]; then
+    xkeen_scripts_dir="$xkeen_extract_dir/.xkeen"
+  else
+    rm -rf "$xkeen_extract_dir"
+    rm -f "$xkeen_archive"
+    echo "В архиве XKeen не найдены скрипты."
+    return 1
+  fi
+
+  if [ ! -f "$xkeen_extract_dir/xkeen" ]; then
+    rm -rf "$xkeen_extract_dir"
+    rm -f "$xkeen_archive"
+    echo "В архиве XKeen не найден запускной файл."
+    return 1
+  fi
+
+  mv -f "$xkeen_extract_dir/xkeen" /opt/sbin/xkeen
+  rm -rf /opt/sbin/.xkeen /opt/sbin/_xkeen
+  mv "$xkeen_scripts_dir" /opt/sbin/.xkeen
   chmod +x /opt/sbin/xkeen
+  rm -rf "$xkeen_extract_dir"
   rm -f "$xkeen_archive"
 }
 
@@ -197,9 +227,10 @@ ensure_xkeen_mihomo() {
     return 0
   fi
 
-  echo "XKeen не найден. Устанавливаю XKeen только с ядром Mihomo без GeoFile и расписаний."
   install_xkeen_packages || exit 1
+  echo "Установка Mihomo"
   download_mihomo_binary || exit 1
+  echo "Установка XKeen"
   install_xkeen_distribution || exit 1
 
   if ! printf '1\n1\n' | XKEEN_FOREGROUND=1 /opt/sbin/xkeen -io; then
