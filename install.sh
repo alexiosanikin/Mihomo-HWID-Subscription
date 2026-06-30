@@ -11,10 +11,34 @@ MIHOMO_DOWNLOAD_BASE="https://github.com/MetaCubeX/mihomo/releases/download"
 YQ_UPSTREAM_BASE="https://github.com/mikefarah/yq/releases/latest/download"
 YQ_WORKAROUND_BASE="https://github.com/jameszeroX/yq/releases/latest/download"
 
-download_file() {
+progress_wait() {
+  message="$1"
+  shift
+
+  printf "  %s" "$message"
+  "$@" >/dev/null 2>&1 &
+  pid="$!"
+
+  while kill -0 "$pid" 2>/dev/null; do
+    printf "."
+    sleep 2
+  done
+
+  wait "$pid"
+  rc="$?"
+
+  if [ "$rc" -eq 0 ]; then
+    echo " готово"
+  else
+    echo " ошибка"
+  fi
+
+  return "$rc"
+}
+
+download_file_attempts() {
   url="$1"
   output="$2"
-  label="$3"
 
   rm -f "$output"
 
@@ -31,6 +55,18 @@ download_file() {
   fi
 
   rm -f "$output"
+  return 1
+}
+
+download_file() {
+  url="$1"
+  output="$2"
+  label="$3"
+
+  if progress_wait "Загрузка $label" download_file_attempts "$url" "$output"; then
+    return 0
+  fi
+
   echo "Не удалось загрузить $label."
   return 1
 }
@@ -56,11 +92,11 @@ restart_xkeen() {
 install_xkeen_packages() {
   command -v opkg >/dev/null 2>&1 || return 0
 
-  opkg update >/dev/null 2>&1 || return 1
+  progress_wait "Обновление списка пакетов Entware" opkg update || return 1
 
   for package in curl jq ip-full iptables ipset ca-bundle coreutils-uname coreutils-nohup; do
     if ! opkg list-installed 2>/dev/null | grep -q "^$package "; then
-      opkg install "$package" >/dev/null 2>&1 || return 1
+      progress_wait "Установка пакета $package" opkg install "$package" || return 1
     fi
   done
 }
