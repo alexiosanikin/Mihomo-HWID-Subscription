@@ -36,7 +36,9 @@ download_file() {
 }
 
 xkeen_is_installed() {
-  { command -v xkeen >/dev/null 2>&1 || [ -x /opt/sbin/xkeen ]; } && [ -f /opt/sbin/.xkeen/import.sh ]
+  [ -x /opt/sbin/xkeen ] &&
+    [ -f /opt/sbin/.xkeen/import.sh ] &&
+    [ -x /opt/etc/init.d/S05xkeen ]
 }
 
 xkeen_run() {
