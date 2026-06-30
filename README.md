@@ -4,10 +4,19 @@
 
 ## Установка
 
+Для чистой Entware-среды:
+```sh
+opkg update
+opkg install curl
+```
+
 `XKeen`
 ```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/dorian6996/Mihomo-HWID-Subscription/main/install.sh)"
 ```
+
+Если XKeen не установлен, скрипт поставит XKeen с Mihomo автоматически.
+
 `Linux`
 ```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/dorian6996/Mihomo-HWID-Subscription/main/install-linux.sh)"
