@@ -77,6 +77,13 @@ xkeen_is_installed() {
     [ -x /opt/etc/init.d/S05xkeen ]
 }
 
+mihomo_is_installed() {
+  [ -x /opt/sbin/mihomo ] &&
+    [ -x /opt/sbin/yq ] &&
+    /opt/sbin/mihomo -v >/dev/null 2>&1 &&
+    /opt/sbin/yq --version >/dev/null 2>&1
+}
+
 xkeen_run() {
   if command -v xkeen >/dev/null 2>&1; then
     XKEEN_FOREGROUND=1 xkeen "$@"
@@ -258,9 +265,21 @@ install_xkeen_distribution() {
   rm -f "$xkeen_archive"
 }
 
+register_xkeen_offline() {
+  if ! printf '1\n1\n' | XKEEN_FOREGROUND=1 /opt/sbin/xkeen -io; then
+    echo "Не удалось выполнить offline-установку XKeen."
+    exit 1
+  fi
+}
+
 ensure_xkeen_mihomo() {
   if xkeen_is_installed; then
     echo "XKeen уже установлен."
+    if ! mihomo_is_installed; then
+      echo "Установка Mihomo"
+      download_mihomo_binary || exit 1
+      register_xkeen_offline
+    fi
     xkeen_run -mihomo >/dev/null 2>&1 || true
     return 0
   fi
@@ -271,11 +290,7 @@ ensure_xkeen_mihomo() {
   echo "Установка XKeen"
   install_xkeen_distribution || exit 1
 
-  if ! printf '1\n1\n' | XKEEN_FOREGROUND=1 /opt/sbin/xkeen -io; then
-    echo "Не удалось выполнить offline-установку XKeen."
-    exit 1
-  fi
-
+  register_xkeen_offline
   xkeen_run -mihomo >/dev/null 2>&1 || true
 }
 
