@@ -5,10 +5,216 @@ UPDATE_SCRIPT="/opt/etc/mihomo/update-config.sh"
 UPDATE_VERSIONS_SCRIPT="/opt/etc/mihomo/update-versions.sh"
 
 GROUPS_RULES_URL="https://raw.githubusercontent.com/dorian6996/Mihomo-HWID-Subscription/main/template.yaml"
+XKEEN_TARBALL_URL="https://github.com/jameszeroX/XKeen/releases/latest/download/xkeen.tar.gz"
+MIHOMO_RELEASE_API="https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
+MIHOMO_DOWNLOAD_BASE="https://github.com/MetaCubeX/mihomo/releases/download"
+YQ_UPSTREAM_BASE="https://github.com/mikefarah/yq/releases/latest/download"
+YQ_WORKAROUND_BASE="https://github.com/jameszeroX/yq/releases/latest/download"
+
+download_file() {
+  url="$1"
+  output="$2"
+  label="$3"
+
+  rm -f "$output"
+
+  if curl -fL --connect-timeout 10 -m 90 "$url" -o "$output"; then
+    return 0
+  fi
+
+  if curl -fL --connect-timeout 10 -m 90 "https://gh-proxy.com/$url" -o "$output"; then
+    return 0
+  fi
+
+  if curl -fL --connect-timeout 10 -m 90 "https://ghfast.top/$url" -o "$output"; then
+    return 0
+  fi
+
+  rm -f "$output"
+  echo "Не удалось загрузить $label."
+  return 1
+}
+
+xkeen_is_installed() {
+  command -v xkeen >/dev/null 2>&1 || [ -x /opt/sbin/xkeen ]
+}
+
+xkeen_run() {
+  if command -v xkeen >/dev/null 2>&1; then
+    XKEEN_FOREGROUND=1 xkeen "$@"
+  else
+    XKEEN_FOREGROUND=1 /opt/sbin/xkeen "$@"
+  fi
+}
+
+restart_xkeen() {
+  xkeen_run -restart
+}
+
+install_xkeen_packages() {
+  command -v opkg >/dev/null 2>&1 || return 0
+
+  opkg update >/dev/null 2>&1 || return 1
+
+  for package in curl jq ip-full iptables ipset ca-bundle coreutils-uname coreutils-nohup; do
+    if ! opkg list-installed 2>/dev/null | grep -q "^$package "; then
+      opkg install "$package" >/dev/null 2>&1 || return 1
+    fi
+  done
+}
+
+detect_xkeen_architecture() {
+  ARCHITECTURE=""
+  SOFTFLOAT=""
+
+  if command -v opkg >/dev/null 2>&1; then
+    opkg_arch="$(opkg print-architecture 2>/dev/null | awk '!/all/ {print $2; exit}' | cut -d- -f1)"
+    case "$opkg_arch" in
+      *aarch64*) ARCHITECTURE="arm64-v8a" ;;
+      *mipsel*) ARCHITECTURE="mips32le" ;;
+      *mips*) ARCHITECTURE="mips32" ;;
+    esac
+  fi
+
+  if [ -z "$ARCHITECTURE" ]; then
+    uname_arch="$(uname -m 2>/dev/null)"
+    case "$uname_arch" in
+      aarch64|arm64) ARCHITECTURE="arm64-v8a" ;;
+      mipsel*|mipsle*) ARCHITECTURE="mips32le" ;;
+      mips*) ARCHITECTURE="mips32" ;;
+    esac
+  fi
+
+  if [ "$ARCHITECTURE" = "mips32le" ]; then
+    router_version="$(curl -fsS --connect-timeout 2 -m 5 "localhost:79/rci/show/version" 2>/dev/null || ndmc -c 'show version' 2>/dev/null)"
+    case "$router_version" in
+      *KN-1212*|*KN-2310*|*KN-2311*|*KN-2910*) SOFTFLOAT="true" ;;
+    esac
+  fi
+
+  case "$ARCHITECTURE" in
+    arm64-v8a|mips32le|mips32) return 0 ;;
+  esac
+
+  echo "Не удалось определить поддерживаемую архитектуру Entware."
+  return 1
+}
+
+latest_mihomo_version() {
+  for prefix in "" "https://gh-proxy.com/" "https://ghfast.top/"; do
+    version="$(
+      curl -fsSL --connect-timeout 10 -m 30 "${prefix}${MIHOMO_RELEASE_API}" 2>/dev/null |
+        sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' |
+        head -n 1
+    )"
+    [ -n "$version" ] && echo "$version" && return 0
+  done
+
+  return 1
+}
+
+download_mihomo_binary() {
+  detect_xkeen_architecture || return 1
+
+  version="$(latest_mihomo_version)"
+  if [ -z "$version" ]; then
+    echo "Не удалось получить последнюю версию Mihomo."
+    return 1
+  fi
+
+  case "$ARCHITECTURE" in
+    arm64-v8a)
+      mihomo_asset="mihomo-linux-arm64-$version.gz"
+      yq_asset="yq_linux_arm64"
+      yq_base="$YQ_UPSTREAM_BASE"
+      ;;
+    mips32le)
+      if [ "$SOFTFLOAT" = "true" ]; then
+        mihomo_asset="mihomo-linux-mipsle-softfloat-$version.gz"
+        yq_base="$YQ_WORKAROUND_BASE"
+      else
+        mihomo_asset="mihomo-linux-mipsle-hardfloat-$version.gz"
+        yq_base="$YQ_UPSTREAM_BASE"
+      fi
+      yq_asset="yq_linux_mipsle"
+      ;;
+    mips32)
+      mihomo_asset="mihomo-linux-mips-hardfloat-$version.gz"
+      yq_asset="yq_linux_mips"
+      yq_base="$YQ_UPSTREAM_BASE"
+      ;;
+  esac
+
+  mkdir -p /opt/sbin /tmp/xkeen-mihomo
+
+  if ! /opt/sbin/yq --version >/dev/null 2>&1; then
+    download_file "$yq_base/$yq_asset" "/opt/sbin/yq" "yq" || return 1
+    chmod +x /opt/sbin/yq
+  fi
+
+  mihomo_gz="/tmp/xkeen-mihomo/mihomo.gz"
+  mihomo_tmp="/tmp/xkeen-mihomo/mihomo"
+
+  download_file "$MIHOMO_DOWNLOAD_BASE/$version/$mihomo_asset" "$mihomo_gz" "Mihomo $version" || return 1
+  if ! gzip -cd "$mihomo_gz" > "$mihomo_tmp"; then
+    rm -f "$mihomo_gz" "$mihomo_tmp"
+    echo "Не удалось распаковать Mihomo."
+    return 1
+  fi
+
+  mv "$mihomo_tmp" /opt/sbin/mihomo
+  chmod +x /opt/sbin/mihomo
+  rm -f "$mihomo_gz"
+
+  if ! /opt/sbin/mihomo -v >/dev/null 2>&1; then
+    echo "Установленный Mihomo не запускается."
+    return 1
+  fi
+}
+
+install_xkeen_distribution() {
+  mkdir -p /opt/sbin /tmp/xkeen-mihomo
+  xkeen_archive="/tmp/xkeen-mihomo/xkeen.tar.gz"
+
+  download_file "$XKEEN_TARBALL_URL" "$xkeen_archive" "XKeen" || return 1
+  if ! tar -tzf "$xkeen_archive" >/dev/null 2>&1; then
+    rm -f "$xkeen_archive"
+    echo "Архив XKeen повреждён или имеет неверный формат."
+    return 1
+  fi
+
+  tar -xzf "$xkeen_archive" -C /opt/sbin xkeen _xkeen || return 1
+  rm -rf /opt/sbin/.xkeen
+  mv /opt/sbin/_xkeen /opt/sbin/.xkeen
+  chmod +x /opt/sbin/xkeen
+  rm -f "$xkeen_archive"
+}
+
+ensure_xkeen_mihomo() {
+  if xkeen_is_installed; then
+    echo "XKeen уже установлен."
+    xkeen_run -mihomo >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  echo "XKeen не найден. Устанавливаю XKeen только с ядром Mihomo без GeoFile и расписаний."
+  install_xkeen_packages || exit 1
+  download_mihomo_binary || exit 1
+  install_xkeen_distribution || exit 1
+
+  if ! printf '1\n1\n' | XKEEN_FOREGROUND=1 /opt/sbin/xkeen -io; then
+    echo "Не удалось выполнить offline-установку XKeen."
+    exit 1
+  fi
+
+  xkeen_run -mihomo >/dev/null 2>&1 || true
+}
 
 echo
 echo "=== Mihomo HWID Subscription Installer ==="
 echo
+
+ensure_xkeen_mihomo
 
 CONFIG_EXISTS=0
 [ -f "$CONFIG_PATH" ] && CONFIG_EXISTS=1
@@ -161,7 +367,7 @@ if [ "$CONFIG_EXISTS" -eq 1 ] && [ "$MODE" = "1" ]; then
   ' "$CONFIG_PATH" > "$CONFIG_PATH.tmp" && mv "$CONFIG_PATH.tmp" "$CONFIG_PATH"
 
   echo "Подписка добавлена."
-  xkeen -restart
+  restart_xkeen
   exit 0
 fi
 
@@ -211,7 +417,7 @@ proxy-providers:
 EOF
 
   echo "Минимальный конфиг создан."
-  xkeen -restart
+  restart_xkeen
   exit 0
 fi
 
@@ -292,7 +498,7 @@ EOF
   if [ "$CRON_CHOICE" = "2" ]; then
     echo "Крон не установлен."
     echo "Полный конфиг установлен."
-    xkeen -restart
+    restart_xkeen
     echo "Готово."
     exit 0
   fi
@@ -318,7 +524,11 @@ cat "$TMP_FILE" >> "$CONFIG_PATH.tmp"
 mv "$CONFIG_PATH.tmp" "$CONFIG_PATH"
 rm -f "$TMP_FILE"
 
-xkeen -restart
+if command -v xkeen >/dev/null 2>&1; then
+  XKEEN_FOREGROUND=1 xkeen -restart
+else
+  XKEEN_FOREGROUND=1 /opt/sbin/xkeen -restart
+fi
 UPDATEEOF
 
   sed -i "s|PLACEHOLDER_URL|$GROUPS_RULES_URL|g" "$UPDATE_SCRIPT"
@@ -389,7 +599,7 @@ VERSEOF
 
   echo "Расписание установлено: каждый 3й день в 5:00."
   echo "Полный конфиг установлен."
-  xkeen -restart
+  restart_xkeen
   echo "Готово."
 fi
 )
