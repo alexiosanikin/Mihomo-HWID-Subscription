@@ -33,6 +33,10 @@ proxy-groups:
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cloudflare.png
   include-all: true
   proxies: [DIRECT,"VPN","⚡️ Fastest"]
+- name: Jetbrains
+  type: select
+  include-all: true
+  proxies: [ 'VPN', '⚡️ Fastest', DIRECT ]
 - name: Meta
   type: select
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Facebook.png
@@ -175,6 +179,26 @@ rule-providers:
     interval: 86400
     url: https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/telegram.mrs
     path: ./rule-sets/telegramip.mrs
+  telegram_networks:
+    type: inline
+    behavior: ipcidr
+    payload:
+      - 91.105.192.0/23
+      - 91.108.4.0/22
+      - 91.108.8.0/22
+      - 91.108.12.0/22
+      - 91.108.16.0/22
+      - 91.108.20.0/22
+      - 91.108.56.0/22
+      - 91.108.58.0/23
+      - 95.161.64.0/20
+      - 149.154.160.0/20
+      - 149.154.162.0/2
+      - 149.154.164.0/23
+      - 149.154.166.0/23
+      - 149.154.168.0/22
+      - 149.154.172.0/22
+      - 185.76.151.0/24
   no_russia_hosts:
     type: http
     behavior: domain
@@ -265,6 +289,14 @@ rule-providers:
     interval: 86400
     url: https://github.com/PentiumB/CDN-RuleSet/raw/refs/heads/main/release/cloudflare.mrs
     path: ./rule-sets/cloudflare.mrs
+  jetbrains:
+    type: inline
+    behavior: classical
+    format: yaml
+    interval: 86400
+    payload:
+      - GEOSITE,jetbrains
+      - GEOSITE,jetbrains-ai
   geosite-ru:
     type: http
     behavior: domain
@@ -300,6 +332,22 @@ rule-providers:
     url: https://github.com/zxc-rv/ad-filter/releases/latest/download/adlist.mrs
     path: ./rule-sets/adlist.mrs
 rules:
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve    # Частная сеть Class A, RFC1918
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve   # Сеть оператора RFC6598
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve    # Loopback (localhost), RFC1700
+  - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve    # Link local, RFC3330
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve    # Частная сеть Class B, RFC1918
+  - IP-CIDR,192.88.99.0/24,DIRECT,no-resolve    # Anycast 6to4, RFC3068
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve    # Частная сеть Class C, RFC1918
+  - IP-CIDR,224.0.0.0/4,DIRECT,no-resolve    # Multicast, RFC3171
+  - DOMAIN-SUFFIX,local,DIRECT    # Локальный префикс
+  - DOMAIN-SUFFIX,lan,DIRECT    # Локальный префикс
+  - DOMAIN-SUFFIX,connectivitycheck.gstatic.com,DIRECT
+  - RULE-SET,geosite-private,DIRECT
+  - RULE-SET,geoip-private,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,local,DIRECT
+  - # - RULE-SET,ads_domains,REJECT
+  - RULE-SET,apple,DIRECT
   - RULE-SET,geosite-private,DIRECT
   - RULE-SET,geoip-private,DIRECT,no-resolve
   - DOMAIN-SUFFIX,local,DIRECT
@@ -317,8 +365,10 @@ rules:
   - RULE-SET,youtube,YouTube
   - RULE-SET,meta,Meta
   - RULE-SET,metaip,Meta,no-resolve
+  - RULE-SET,jetbrains,Jetbrains
   - RULE-SET,telegram,Telegram
   - RULE-SET,telegramip,Telegram,no-resolve
+  - RULE-SET,telegram_networks,Telegram,no-resolve
   - RULE-SET,discord,Discord
   - RULE-SET,discord_vc,Discord
   - PROCESS-NAME-REGEX,(?i).*discord.*,Discord
