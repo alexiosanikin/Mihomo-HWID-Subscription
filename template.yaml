@@ -289,6 +289,13 @@ rule-providers:
     interval: 86400
     url: https://github.com/PentiumB/CDN-RuleSet/raw/refs/heads/main/release/cloudflare.mrs
     path: ./rule-sets/cloudflare.mrs
+  ipcheck:
+    # use 2ip.io or ifconfig.me check external ip (via vpn)
+    type: http
+    behavior: domain
+    url: https://raw.githubusercontent.com/alexiosanikin/Mihomo-HWID-Subscription/refs/heads/main/rule-sets/ipcheck.yaml
+    path: ./rule-sets/ipcheck.yaml
+    interval: 86400
   jetbrains:
     type: inline
     behavior: classical
@@ -384,6 +391,7 @@ rules:
   - DOMAIN-SUFFIX,wwsga.me,Заблокировано в РФ
   - DOMAIN-SUFFIX,gran-turismo.com,Заблокировано в РФ
   - RULE-SET,no_russia_hosts,Недоступно из РФ
+  - RULE-SET,ipcheck,Недоступно из РФ
   - RULE-SET,roblox,Недоступно из РФ
   - DOMAIN-SUFFIX,4pda.to,Недоступно из РФ
   - DOMAIN-SUFFIX,happ-proxy.com,Недоступно из РФ
