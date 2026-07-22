@@ -62,6 +62,10 @@ proxy-groups:
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram.png
   include-all: true
   proxies: ["VPN","⚡️ Fastest",DIRECT]
+- name: Roblox
+  type: select
+  include-all: true
+  proxies: ["VPN","⚡️ Fastest",DIRECT]
 - name: Steam
   type: select
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Steam.png
@@ -392,7 +396,7 @@ rules:
   - DOMAIN-SUFFIX,gran-turismo.com,Заблокировано в РФ
   - RULE-SET,no_russia_hosts,Недоступно из РФ
   - RULE-SET,ipcheck,Недоступно из РФ
-  - RULE-SET,roblox,Недоступно из РФ
+  - RULE-SET,roblox,Roblox
   - DOMAIN-SUFFIX,4pda.to,Недоступно из РФ
   - DOMAIN-SUFFIX,happ-proxy.com,Недоступно из РФ
   - RULE-SET,oracle,Недоступно из РФ,no-resolve
