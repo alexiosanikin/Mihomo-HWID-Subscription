@@ -65,7 +65,7 @@ proxy-groups:
 - name: Roblox
   type: select
   include-all: true
-  proxies: ["VPN","⚡️ Fastest",DIRECT]
+  proxies: ["VPN","⚡️ Fastest",DIRECT, REJECT]
 - name: Steam
   type: select
   icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Steam.png
@@ -362,7 +362,6 @@ rules:
   - RULE-SET,geosite-private,DIRECT
   - RULE-SET,geoip-private,DIRECT,no-resolve
   - DOMAIN-SUFFIX,local,DIRECT
-  - RULE-SET,ads_domains,REJECT
   - RULE-SET,apple,DIRECT
   - DOMAIN-SUFFIX,github.com,DIRECT
   - DOMAIN-SUFFIX,githubusercontent.com,DIRECT
